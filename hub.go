@@ -28,7 +28,7 @@ func (h *Hub) Run() {
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.msg)
-				client.conn.Close()
+				close(client.done)
 				log.Printf("Client unregistered: %v", client)
 			}
 		case message := <-h.broadcast:
@@ -36,10 +36,10 @@ func (h *Hub) Run() {
 				select {
 				case client.msg <- message:
 				default:
-					close(client.msg)
 					delete(h.clients, client)
-					client.conn.Close()
-					log.Printf("Client removed: %v", client)
+					close(client.msg)
+					close(client.done)
+					log.Printf("Client removed (buffer full): %v", client)
 				}
 			}
 		}
