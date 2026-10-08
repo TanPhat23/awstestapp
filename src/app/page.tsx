@@ -1,103 +1,225 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { TaskItem, TaskStatus, AgentMetric } from '@/types/task';
+import { INITIAL_TASKS, INITIAL_AGENTS } from '@/data/mock-tasks';
+import { Navbar } from '@/components/Navbar';
+import { MetricsOverview } from '@/components/MetricsOverview';
+import { TaskTable } from '@/components/TaskTable';
+import { CreateTaskModal } from '@/components/CreateTaskModal';
+import { TaskDetailModal } from '@/components/TaskDetailModal';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [tasks, setTasks] = useState<TaskItem[]>(INITIAL_TASKS);
+  const [agents] = useState<AgentMetric[]>(INITIAL_AGENTS);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<'all' | TaskStatus>('all');
+  const [selectedAgent, setSelectedAgent] = useState('all');
+
+  // Modals state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [activeTaskForModal, setActiveTaskForModal] = useState<TaskItem | null>(null);
+
+  // Available agent names for selectors
+  const availableAgents = useMemo(() => {
+    return Array.from(new Set(agents.map((a) => a.name)));
+  }, [agents]);
+
+  // Filtered Tasks
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) => {
+      // Status filter
+      if (selectedStatus !== 'all' && task.status !== selectedStatus) {
+        return false;
+      }
+      // Agent filter
+      if (selectedAgent !== 'all' && task.agent !== selectedAgent) {
+        return false;
+      }
+      // Search query
+      if (searchQuery.trim() !== '') {
+        const query = searchQuery.toLowerCase();
+        const matchesTitle = task.title.toLowerCase().includes(query);
+        const matchesId = task.id.toLowerCase().includes(query);
+        const matchesAgent = task.agent.toLowerCase().includes(query);
+        const matchesLogs = task.logs.some((l) => l.message.toLowerCase().includes(query));
+        if (!matchesTitle && !matchesId && !matchesAgent && !matchesLogs) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [tasks, selectedStatus, selectedAgent, searchQuery]);
+
+  // Handlers
+  const handleCreateTask = (newTaskData: Omit<TaskItem, 'id' | 'logs' | 'duration' | 'startedAt'>) => {
+    const nextIndex = tasks.length + 8922;
+    const newTask: TaskItem = {
+      ...newTaskData,
+      id: `TSK-${nextIndex}`,
+      startedAt: 'Just now',
+      duration: '0s',
+      logs: [
+        {
+          id: `log-${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+          level: 'info',
+          message: `Dispatched to ${newTaskData.agent}. Queued in priority worker pool.`,
+        },
+      ],
+    };
+
+    setTasks((prev) => [newTask, ...prev]);
+  };
+
+  const handleTogglePause = (taskId: string) => {
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          const newStatus: TaskStatus = t.status === 'running' ? 'paused' : 'running';
+          const newLog = {
+            id: `log-${Date.now()}`,
+            timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+            level: 'warn' as const,
+            message: `Task state changed to ${newStatus} by operator manual trigger.`,
+          };
+          return {
+            ...t,
+            status: newStatus,
+            currentStep: newStatus === 'paused' ? 'Paused by operator' : 'Resuming execution pipeline',
+            logs: [...t.logs, newLog],
+          };
+        }
+        return t;
+      })
+    );
+  };
+
+  const handleRetryTask = (taskId: string) => {
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          const newLog = {
+            id: `log-${Date.now()}`,
+            timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+            level: 'info' as const,
+            message: `Task restarted in worker context. Re-queuing payload execution.`,
+          };
+          return {
+            ...t,
+            status: 'running' as TaskStatus,
+            progress: 10,
+            duration: '0s',
+            startedAt: 'Just now',
+            currentStep: 'Re-initializing execution container',
+            logs: [...t.logs, newLog],
+          };
+        }
+        return t;
+      })
+    );
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    if (activeTaskForModal?.id === taskId) {
+      setActiveTaskForModal(null);
+    }
+  };
+
+  const handleAddLog = (taskId: string, message: string) => {
+    const newLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      level: 'info' as const,
+      message,
+    };
+
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          return {
+            ...t,
+            logs: [...t.logs, newLog],
+          };
+        }
+        return t;
+      })
+    );
+
+    // If modal is open for this task, update local modal view
+    setActiveTaskForModal((prev) => {
+      if (prev && prev.id === taskId) {
+        return {
+          ...prev,
+          logs: [...prev.logs, newLog],
+        };
+      }
+      return prev;
+    });
+  };
+
+  const activeAgentsCount = useMemo(() => {
+    return agents.filter((a) => a.status === 'active' || a.status === 'busy').length;
+  }, [agents]);
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
+      {/* Top Navigation */}
+      <Navbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onOpenNewTaskModal={() => setIsCreateModalOpen(true)}
+        activeAgentsCount={activeAgentsCount}
+      />
+
+      {/* Main Dashboard Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Metric Cards & Utilization */}
+        <MetricsOverview tasks={tasks} agents={agents} />
+
+        {/* Task Board / Table View */}
+        <TaskTable
+          tasks={filteredTasks}
+          selectedStatus={selectedStatus}
+          onSelectStatus={setSelectedStatus}
+          selectedAgent={selectedAgent}
+          onSelectAgent={setSelectedAgent}
+          availableAgents={availableAgents}
+          onViewLogs={(task) => setActiveTaskForModal(task)}
+          onTogglePause={handleTogglePause}
+          onRetryTask={handleRetryTask}
+          onDeleteTask={handleDeleteTask}
+        />
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-900 bg-zinc-950/60 py-6 text-center text-xs text-zinc-500 font-mono">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span>Agent Task Manager • Next.js 15 & Tailwind v4</span>
+          <span className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+            Cluster Node Synchronized
+          </span>
+        </div>
       </footer>
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreateTask={handleCreateTask}
+        availableAgents={availableAgents}
+      />
+
+      {/* Task Detail & Log Modal */}
+      <TaskDetailModal
+        task={activeTaskForModal}
+        onClose={() => setActiveTaskForModal(null)}
+        onAddLog={handleAddLog}
+      />
     </div>
   );
 }
