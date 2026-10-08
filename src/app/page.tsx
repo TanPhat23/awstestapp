@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Sparkles, Terminal } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowRight, Sparkles, Terminal, Activity, Zap, ShieldCheck } from "lucide-react";
 
 export default function Home() {
   return (
@@ -53,20 +54,37 @@ export default function Home() {
           </Button>
         </div>
 
-        {/* Social Proof / Stats preview */}
-        <div className="mt-16 grid grid-cols-2 sm:grid-cols-3 gap-6 pt-8 border-t border-border/40 text-muted-foreground text-sm w-full max-w-xl">
-          <div>
-            <div className="text-xl sm:text-2xl font-bold text-foreground">99.99%</div>
-            <div className="text-xs sm:text-sm">Uptime SLA</div>
-          </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-bold text-foreground">&lt; 50ms</div>
-            <div className="text-xs sm:text-sm">Global Latency</div>
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <div className="text-xl sm:text-2xl font-bold text-foreground">10x</div>
-            <div className="text-xs sm:text-sm">Faster Delivery</div>
-          </div>
+        {/* Feature & Metric Cards */}
+        <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-3xl text-left">
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-6 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-primary">
+                <ShieldCheck className="size-5" />
+                <span className="text-xl font-bold text-foreground">99.99%</span>
+              </div>
+              <p className="text-xs text-muted-foreground">High availability SLA guaranteed across all regions.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-6 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-primary">
+                <Activity className="size-5" />
+                <span className="text-xl font-bold text-foreground">&lt; 50ms</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Ultra-low global edge latency with smart routing.</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-6 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-primary">
+                <Zap className="size-5" />
+                <span className="text-xl font-bold text-foreground">10x</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Accelerate deployment velocity from day one.</p>
+            </CardContent>
+          </Card>
         </div>
       </main>
     </div>
