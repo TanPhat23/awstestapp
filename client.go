@@ -1,11 +1,16 @@
 package main
 
-import "github.com/gorilla/websocket"
+import (
+	"sync"
+
+	"github.com/gorilla/websocket"
+)
 
 type Client struct {
-	conn *websocket.Conn
-	msg  chan []byte
-	done chan struct{}
+	conn     *websocket.Conn
+	msg      chan []byte
+	done     chan struct{}
+	closeOnce sync.Once
 }
 
 func NewClient(conn *websocket.Conn) *Client {
@@ -16,9 +21,17 @@ func NewClient(conn *websocket.Conn) *Client {
 	}
 }
 
+// CloseDone safely closes the client's done channel exactly once.
+func (c *Client) CloseDone() {
+	c.closeOnce.Do(func() {
+		close(c.done)
+	})
+}
+
 func (c *Client) Read(hub *Hub) {
 	defer func() {
 		hub.unregister <- c
+		c.conn.Close()
 	}()
 	for {
 		_, message, err := c.conn.ReadMessage()
