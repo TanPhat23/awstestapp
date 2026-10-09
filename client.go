@@ -21,17 +21,20 @@ func NewClient(conn *websocket.Conn) *Client {
 	}
 }
 
-// CloseDone safely closes the client's done channel exactly once.
+// CloseDone safely closes the client's done channel exactly once and closes the connection.
 func (c *Client) CloseDone() {
 	c.closeOnce.Do(func() {
 		close(c.done)
+		if c.conn != nil {
+			c.conn.Close()
+		}
 	})
 }
 
 func (c *Client) Read(hub *Hub) {
 	defer func() {
 		hub.unregister <- c
-		c.conn.Close()
+		c.CloseDone()
 	}()
 	for {
 		_, message, err := c.conn.ReadMessage()
@@ -44,7 +47,7 @@ func (c *Client) Read(hub *Hub) {
 
 func (c *Client) Write() {
 	defer func() {
-		c.conn.Close()
+		c.CloseDone()
 	}()
 	for {
 		select {
