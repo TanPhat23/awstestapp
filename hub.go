@@ -23,13 +23,13 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
-			log.Printf("Client registered: %v", client)
+			log.Printf("Client registered: %p", client)
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
 				close(client.msg)
 				client.CloseDone()
-				log.Printf("Client unregistered: %v", client)
+				log.Printf("Client unregistered: %p", client)
 			}
 		case message := <-h.broadcast:
 			for client := range h.clients {
@@ -39,7 +39,7 @@ func (h *Hub) Run() {
 					delete(h.clients, client)
 					close(client.msg)
 					client.CloseDone()
-					log.Printf("Client removed (buffer full): %v", client)
+					log.Printf("Client removed (buffer full): %p", client)
 				}
 			}
 		}
