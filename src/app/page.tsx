@@ -1,103 +1,134 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState } from "react";
+import { TopNavbar } from "@/components/dashboard/TopNavbar";
+import { MetricsOverview } from "@/components/dashboard/MetricsOverview";
+import { ResourceExplorer } from "@/components/dashboard/ResourceExplorer";
+import { CostAnalytics } from "@/components/dashboard/CostAnalytics";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
+import { QuickDeployModal } from "@/components/dashboard/QuickDeployModal";
+import {
+  initialMetrics,
+  initialResources,
+  costBreakdown,
+  recentActivityEvents,
+  stackTemplates,
+} from "@/data/mockData";
+import { Button } from "@/components/ui/Button";
+import { PlusIcon, ShieldCheckIcon, CloudIcon, ServerIcon, DatabaseIcon } from "@/components/ui/Icons";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isDeployModalOpen, setIsDeployModalOpen] = useState<boolean>(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
+      {/* Top Navigation */}
+      <TopNavbar
+        onQuickDeployClick={() => setIsDeployModalOpen(true)}
+        selectedRegion={selectedRegion}
+        onRegionChange={setSelectedRegion}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Welcome & Quick Action Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                AWS Infrastructure Overview
+              </h1>
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                All Systems Operational
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Account: <span className="font-mono text-slate-700 dark:text-slate-300">aws-prod-main (4912-8801-4421)</span> · Environment: <span className="font-semibold text-amber-500">Production</span>
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedRegion("all");
+              }}
+            >
+              Reset Filters
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsDeployModalOpen(true)}
+            >
+              <PlusIcon className="w-4 h-4" />
+              Provision Resource
+            </Button>
+          </div>
         </div>
+
+        {/* 1. KPI Metrics */}
+        <section aria-label="Executive Metrics">
+          <MetricsOverview metrics={initialMetrics} />
+        </section>
+
+        {/* 2. Interactive Resource Explorer */}
+        <section aria-label="Cloud Resource Explorer">
+          <ResourceExplorer
+            resources={initialResources}
+            searchQuery={searchQuery}
+            selectedRegion={selectedRegion}
+          />
+        </section>
+
+        {/* 3. Cost Analytics & Estimator */}
+        <section aria-label="Cost Analytics and Estimator">
+          <CostAnalytics breakdown={costBreakdown} />
+        </section>
+
+        {/* 4. Activity Audit Stream */}
+        <section aria-label="CloudWatch and Audit Log">
+          <ActivityFeed events={recentActivityEvents} />
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 dark:border-slate-800 py-6 text-xs text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-900/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <CloudIcon className="w-4 h-4 text-amber-500" />
+            <span className="font-medium text-slate-700 dark:text-slate-300">awsapp Cloud Console</span>
+            <span>· Next.js 15 App Router & React 19</span>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs">
+            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <ShieldCheckIcon className="w-3.5 h-3.5" /> SOC2 Type II Certified
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">|</span>
+            <span className="flex items-center gap-1">
+              <ServerIcon className="w-3.5 h-3.5 text-blue-500" /> 12 Clusters
+            </span>
+            <span className="flex items-center gap-1">
+              <DatabaseIcon className="w-3.5 h-3.5 text-indigo-500" /> Multi-AZ Aurora
+            </span>
+          </div>
+        </div>
       </footer>
+
+      {/* Quick Deploy Modal */}
+      <QuickDeployModal
+        isOpen={isDeployModalOpen}
+        onClose={() => setIsDeployModalOpen(false)}
+        templates={stackTemplates}
+      />
     </div>
   );
 }
